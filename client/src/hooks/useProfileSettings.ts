@@ -46,6 +46,7 @@ const useProfileSettings = () => {
         setLoading(true);
         const data = await getUserByUsername(username);
         setUserData(data);
+        setNewBio(data.biography);
       } catch (error) {
         setErrorMessage('Error fetching user profile');
         setUserData(null);
@@ -69,17 +70,29 @@ const useProfileSettings = () => {
    */
   const validatePasswords = () => newPassword !== '' && newPassword === confirmNewPassword;
 
+  const setMessage = (message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      setErrorMessage(null);
+      setSuccessMessage(message);
+    } else if (type === 'error') {
+      setErrorMessage(message);
+      setSuccessMessage(null);
+    }
+  };
+
   /**
    * Handler for resetting the password
    */
   const handleResetPassword = async () => {
     if (!username) return;
 
-    if (validatePasswords()) {
+    if (newPassword === '') {
+      setMessage('Password cannot be empty', 'error');
+    } else if (validatePasswords()) {
       await resetPassword(username, newPassword);
-      setSuccessMessage('Password reset successfully');
+      setMessage('Password reset successfully', 'success');
     } else {
-      setErrorMessage('Passwords do not match');
+      setMessage('Passwords do not match', 'error');
     }
     setNewPassword('');
     setConfirmNewPassword('');
@@ -90,11 +103,11 @@ const useProfileSettings = () => {
 
     try {
       const data = await updateBiography(username, newBio);
+      setEditBioMode(false);
       setUserData(data);
-      setNewBio('');
-      setSuccessMessage('Biography updated successfully');
+      setMessage('Biography updated successfully', 'success');
     } catch (error) {
-      setErrorMessage((error as Error).message);
+      setMessage((error as Error).message, 'error');
     }
   };
 
