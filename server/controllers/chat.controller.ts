@@ -14,8 +14,10 @@ import {
   AddParticipantRequest,
   ChatIdRequest,
   GetChatByParticipantsRequest,
+  ChatUpdatePayload,
 } from '../types/chat';
 import { FakeSOSocket } from '../types/socket';
+import { Message } from '../types/message';
 
 /*
  * This controller handles chat-related routes.
@@ -39,20 +41,11 @@ const chatController = (socket: FakeSOSocket) => {
     Array.isArray(req.body.messages);
 
   /**
-   * Validates that the request params contains a valid chatId
-   * @param req The incoming request with the chatId in params
-   * @returns `true` if the params contains a valid chatId; otherwise, `false`.
-   */
-  const isChatIdRequestValid = (req: ChatIdRequest): boolean =>
-    !!req.params && req.params.chatId !== undefined && req.params.chatId !== '';
-
-  /**
    * Validates that the request body contains all required fields for a message.
    * @param req The incoming request containing message data.
    * @returns `true` if the body contains valid message fields; otherwise, `false`.
    */
   const isAddMessageRequestValid = (req: AddMessageRequestToChat): boolean =>
-    isChatIdRequestValid(req) &&
     !!req.body &&
     req.body.msg !== undefined &&
     req.body.msg !== '' &&
@@ -66,10 +59,7 @@ const chatController = (socket: FakeSOSocket) => {
    * @returns `true` if the body contains valid participant fields; otherwise, `false`.
    */
   const isAddParticipantRequestValid = (req: AddParticipantRequest): boolean =>
-    isChatIdRequestValid(req) &&
-    !!req.body &&
-    req.body.userId !== undefined &&
-    req.body.userId !== '';
+    !!req.body && req.body.userId !== undefined && req.body.userId !== '';
 
   /**
    * Creates a new chat with the given participants (and optional initial messages).
@@ -79,9 +69,19 @@ const chatController = (socket: FakeSOSocket) => {
    * @throws {Error} Throws an error if the chat creation fails.
    */
   const createChatRoute = async (req: CreateChatRequest, res: Response): Promise<void> => {
-    // TODO: Task 3 - Implement the createChatRoute function
-    // Emit a `chatUpdate` event to share the creation of a new chat
-    res.status(501).send('Not implemented');
+    if (!isCreateChatRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    try {
+      const result = await saveChat(req.body);
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).send(`Error when creating chat: ${err}`);
+    }
   };
 
   /**
@@ -95,11 +95,34 @@ const chatController = (socket: FakeSOSocket) => {
     req: AddMessageRequestToChat,
     res: Response,
   ): Promise<void> => {
-    // TODO: Task 3 - Implement the addMessageToChatRoute function
-    // Emit a `chatUpdate` event to share the updated chat, specifically to
-    // the chat room where the message was added (hint: look into socket rooms)
-    // NOTE: Make sure to define the message type to be a direct message when creating it.
-    res.status(501).send('Not implemented');
+    if (!isAddMessageRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+    }
+    try {
+      const messageData: Message = {
+        msg: req.body.msg,
+        msgFrom: req.body.msgFrom,
+        msgDateTime: req.body.msgDateTime ?? new Date(),
+        type: 'direct',
+      };
+      const message = await createMessage(messageData);
+      if ('error' in message) {
+        throw new Error(message.error);
+      } else if (message._id === undefined) {
+        throw new Error('Message ID is not defined');
+      }
+      const result = await addMessageToChat(req.params.chatId, message._id.toString());
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+
+      const payload: ChatUpdatePayload = { chat: result, type: 'newMessage' };
+      socket.to(req.params.chatId).emit('chatUpdate', payload);
+
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).send(`Error when adding message to chat: ${err}`);
+    }
   };
 
   /**
@@ -110,8 +133,15 @@ const chatController = (socket: FakeSOSocket) => {
    * @throws {Error} Throws an error if the chat retrieval fails.
    */
   const getChatRoute = async (req: ChatIdRequest, res: Response): Promise<void> => {
-    // TODO: Task 3 - Implement the getChatRoute function
-    res.status(501).send('Not implemented');
+    try {
+      const result = await getChat(req.params.chatId);
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).send(`Error retrieving chat: ${err}`);
+    }
   };
 
   /**
@@ -124,8 +154,8 @@ const chatController = (socket: FakeSOSocket) => {
     req: GetChatByParticipantsRequest,
     res: Response,
   ): Promise<void> => {
-    // TODO: Task 3 - Implement the getChatsByUserRoute function
-    res.status(501).send('Not implemented');
+    const result = await getChatsByParticipants([req.params.username]);
+    res.status(200).json(result);
   };
 
   /**
@@ -139,8 +169,19 @@ const chatController = (socket: FakeSOSocket) => {
     req: AddParticipantRequest,
     res: Response,
   ): Promise<void> => {
-    // TODO: Task 3 - Implement the addParticipantToChatRoute function
-    res.status(501).send('Not implemented');
+    if (!isAddParticipantRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    try {
+      const result = await addParticipantToChat(req.params.chatId, req.body.userId);
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).send(`Error adding participant to chat: ${err}`);
+    }
   };
 
   socket.on('connection', conn => {
@@ -155,7 +196,11 @@ const chatController = (socket: FakeSOSocket) => {
   });
 
   // Register the routes
-  // TODO: Task 3 - Add appropriate HTTP verbs and endpoints to the router
+  router.post('/createChat', createChatRoute);
+  router.post('/:chatId/addMessage', addMessageToChatRoute);
+  router.get('/:chatId', getChatRoute);
+  router.post('/:chatId/addParticipant', addParticipantToChatRoute);
+  router.get('/getChatsByUser/:username', getChatsByUserRoute);
 
   return router;
 };
