@@ -36,8 +36,7 @@ const useProfileSettings = () => {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  // TODO: Task 1 - Determine if the current user can edit the profile being viewed
-  const canEditProfile = false; // Replace false with the correct condition
+  const canEditProfile = currentUser.username === username;
 
   useEffect(() => {
     if (!username) return;
@@ -62,15 +61,13 @@ const useProfileSettings = () => {
    * Toggles the visibility of the password fields.
    */
   const togglePasswordVisibility = () => {
-    // TODO: Task 1 - Toggle the password visibility.
+    setShowPassword(prevShowPassword => !prevShowPassword);
   };
 
   /**
    * Validate the password fields before attempting to reset.
    */
-  const validatePasswords = () => {
-    // TODO: Task 1 - Validate the reset password fields and return whether they match
-  };
+  const validatePasswords = () => newPassword !== '' && newPassword === confirmNewPassword;
 
   /**
    * Handler for resetting the password
@@ -78,17 +75,27 @@ const useProfileSettings = () => {
   const handleResetPassword = async () => {
     if (!username) return;
 
-    // TODO: Task 1 - Implement the password reset functionality.
-    // Validate the password fields, then call the resetPassword service.
-    // Display success or error messages accordingly, and clear the password fields.
+    if (validatePasswords()) {
+      await resetPassword(username, newPassword);
+      setSuccessMessage('Password reset successfully');
+    } else {
+      setErrorMessage('Passwords do not match');
+    }
+    setNewPassword('');
+    setConfirmNewPassword('');
   };
 
   const handleUpdateBiography = async () => {
     if (!username) return;
 
-    // TODO: Task 1 - Implement the biography update functionality.
-    // Call the updateBiography service, set the updated user,
-    // then display success or error messages.
+    try {
+      const data = await updateBiography(username, newBio);
+      setUserData(data);
+      setNewBio('');
+      setSuccessMessage('Biography updated successfully');
+    } catch (error) {
+      setErrorMessage((error as Error).message);
+    }
   };
 
   /**
@@ -100,14 +107,14 @@ const useProfileSettings = () => {
     // Display the confirmation modal
     setShowConfirmation(true);
     setPendingAction(() => async () => {
-      // TODO: Task 1 - Call the deleteUser service and handle the response,
-      // displating success or error messages accordingly.
-
       try {
+        await deleteUser(username);
+        setSuccessMessage('User deleted successfully');
         // Navigate home after successful deletion
         navigate('/');
       } catch (error) {
         // Error handling
+        setErrorMessage((error as Error).message);
       } finally {
         // Hide the confirmation modal after completion
         setShowConfirmation(false);
