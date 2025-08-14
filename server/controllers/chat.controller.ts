@@ -31,24 +31,45 @@ const chatController = (socket: FakeSOSocket) => {
    * @param req The incoming request containing chat data.
    * @returns `true` if the body contains valid chat fields; otherwise, `false`.
    */
-  const isCreateChatRequestValid = (req: CreateChatRequest): boolean => false;
-  // TODO: Task 3 - Implement the isCreateChatRequestValid function.
+  const isCreateChatRequestValid = (req: CreateChatRequest): boolean =>
+    !!req.body &&
+    req.body.participants !== undefined &&
+    Array.isArray(req.body.participants) &&
+    req.body.messages !== undefined &&
+    Array.isArray(req.body.messages);
+
+  /**
+   * Validates that the request params contains a valid chatId
+   * @param req The incoming request with the chatId in params
+   * @returns `true` if the params contains a valid chatId; otherwise, `false`.
+   */
+  const isChatIdRequestValid = (req: ChatIdRequest): boolean =>
+    !!req.params && req.params.chatId !== undefined && req.params.chatId !== '';
 
   /**
    * Validates that the request body contains all required fields for a message.
    * @param req The incoming request containing message data.
    * @returns `true` if the body contains valid message fields; otherwise, `false`.
    */
-  const isAddMessageRequestValid = (req: AddMessageRequestToChat): boolean => false;
-  // TODO: Task 3 - Implement the isAddMessageRequestValid function.
+  const isAddMessageRequestValid = (req: AddMessageRequestToChat): boolean =>
+    isChatIdRequestValid(req) &&
+    !!req.body &&
+    req.body.msg !== undefined &&
+    req.body.msg !== '' &&
+    req.body.msgFrom !== undefined &&
+    req.body.msgFrom !== '' &&
+    req.body.msgDateTime !== null;
 
   /**
    * Validates that the request body contains all required fields for a participant.
    * @param req The incoming request containing participant data.
    * @returns `true` if the body contains valid participant fields; otherwise, `false`.
    */
-  const isAddParticipantRequestValid = (req: AddParticipantRequest): boolean => false;
-  // TODO: Task 3 - Implement the isAddParticipantRequestValid function.
+  const isAddParticipantRequestValid = (req: AddParticipantRequest): boolean =>
+    isChatIdRequestValid(req) &&
+    !!req.body &&
+    req.body.userId !== undefined &&
+    req.body.userId !== '';
 
   /**
    * Creates a new chat with the given participants (and optional initial messages).

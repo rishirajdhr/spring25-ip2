@@ -69,7 +69,7 @@ export interface AddMessageRequestToChat extends ChatIdRequest {
  * Payload for adding a participant to a chat.
  */
 export interface AddParticipantPayload {
-  participant: string;
+  userId: string;
 }
 
 /**
