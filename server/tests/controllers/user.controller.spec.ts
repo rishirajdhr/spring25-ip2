@@ -298,7 +298,13 @@ describe('Test userController', () => {
       expect(getUsersListSpy).toHaveBeenCalled();
     });
 
-    // TODO: Task 1 - Add more tests
+    it('should return 500 if database error while retrieving users', async () => {
+      getUsersListSpy.mockResolvedValueOnce({ error: 'Error finding user' });
+
+      const response = await supertest(app).get('/user/getUsers');
+
+      expect(response.status).toBe(500);
+    });
   });
 
   describe('DELETE /deleteUser', () => {
@@ -348,6 +354,30 @@ describe('Test userController', () => {
       });
     });
 
-    // TODO: Task 1 - Add more tests
+    it('should return 400 for request with missing body', async () => {
+      const response = await supertest(app).patch('/user/updateBiography');
+      expect(response.status).toBe(400);
+    });
+
+    it.each([
+      { label: 'missing username', mockReqBody: { biography: 'My bio' } },
+      { label: 'empty username', mockReqBody: { username: '', biography: 'My bio' } },
+      { label: 'missing biography', mockReqBody: { username: 'user01' } },
+    ])('should return 400 for request with $label', async ({ mockReqBody }) => {
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 500 if database error when updating biography', async () => {
+      updatedUserSpy.mockResolvedValueOnce({ error: 'Error updating user' });
+
+      const mockReqBody = {
+        username: 'someUser',
+        biography: 'bio of some user',
+      };
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+
+      expect(response.status).toBe(500);
+    });
   });
 });

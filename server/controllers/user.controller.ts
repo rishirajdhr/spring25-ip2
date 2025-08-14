@@ -128,6 +128,9 @@ const userController = (socket: FakeSOSocket) => {
   const getUsers = async (_: Request, res: Response): Promise<void> => {
     try {
       const users = await getUsersList();
+      if ('error' in users) {
+        throw new Error(users.error);
+      }
       res.status(200).json(users);
     } catch (error) {
       res.status(500).send(`Error when retrieving all users: ${error}`);
@@ -195,8 +198,7 @@ const userController = (socket: FakeSOSocket) => {
     req.body !== undefined &&
     req.body.username !== undefined &&
     req.body.username !== '' &&
-    req.body.biography !== undefined &&
-    req.body.biography !== '';
+    req.body.biography !== undefined;
 
   /**
    * Updates a user's biography.
