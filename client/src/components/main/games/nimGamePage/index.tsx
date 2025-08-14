@@ -48,7 +48,7 @@ const NimGamePage = ({ gameState }: { gameState: GameInstance }) => {
               type='number'
               min={MOVE_MIN_OBJECTS}
               max={MOVE_MAX_OBJECTS}
-              value={move?.move.move.numObjects ?? MOVE_MIN_OBJECTS}
+              value={move.move.move.numObjects}
               onChange={handleInputChange}
             />
             <button
