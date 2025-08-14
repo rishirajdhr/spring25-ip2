@@ -3,10 +3,10 @@ import useUserContext from './useUserContext';
 import { GameInstance, GameMove } from '../types';
 
 /** Minimum number of objects that can be moved. */
-const MOVE_MIN_OBJECTS = 1;
+export const MOVE_MIN_OBJECTS = 1;
 
 /** Maximum number of objects that can be moved. */
-const MOVE_MAX_OBJECTS = 3;
+export const MOVE_MAX_OBJECTS = 3;
 
 /**
  * Custom hook to manage the state and logic for the "Nim" game page,
@@ -27,6 +27,7 @@ const useNimGamePage = (gameState: GameInstance) => {
   const handleMakeMove = async () => {
     if (move) {
       socket.emit('makeMove', move);
+      setMove(null);
     }
   };
 
