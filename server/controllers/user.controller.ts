@@ -126,7 +126,12 @@ const userController = (socket: FakeSOSocket) => {
    * @returns A promise resolving to void.
    */
   const getUsers = async (_: Request, res: Response): Promise<void> => {
-    // TODO: Task 1 - Implement the getUsers endpoint
+    try {
+      const users = await getUsersList();
+      res.status(200).json(users);
+    } catch (error) {
+      res.status(500).send(`Error when retrieving all users: ${error}`);
+    }
   };
 
   /**
@@ -231,7 +236,7 @@ const userController = (socket: FakeSOSocket) => {
   router.get('/getUser/:username', getUser);
   router.delete('/deleteUser/:username', deleteUser);
   router.patch('/updateBiography', updateBiography);
-  // TODO: Task 1 - Add a route for getting all users
+  router.get('/getUsers', getUsers);
 
   return router;
 };
