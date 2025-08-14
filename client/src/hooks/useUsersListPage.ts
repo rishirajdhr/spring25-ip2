@@ -81,7 +81,12 @@ const useUsersListPage = () => {
     };
   }, [socket]);
 
-  const filteredUserlist = userList.filter(user => user.username.includes(userFilter));
+  const lowerCaseUserFilter = userFilter.toLowerCase();
+
+  // Perform case-insensitive filtering of users
+  const filteredUserlist = userList.filter(user =>
+    user.username.toLowerCase().includes(lowerCaseUserFilter),
+  );
   return { userList: filteredUserlist, setUserFilter };
 };
 
