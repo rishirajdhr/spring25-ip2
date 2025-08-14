@@ -138,7 +138,11 @@ const chatController = (socket: FakeSOSocket) => {
       if ('error' in result) {
         throw new Error(result.error);
       }
-      res.status(200).json(result);
+      const populatedChat = await populateDocument(result._id?.toString(), 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+      res.status(200).json(populatedChat);
     } catch (err) {
       res.status(500).send(`Error retrieving chat: ${err}`);
     }

@@ -19,6 +19,7 @@ export interface MessageInChat extends Message {
  * messages is an array of MessageInChat objects.
  */
 export interface Chat {
+  _id?: ObjectId;
   participants: ObjectId[];
   messages: MessageInChat[];
 }
