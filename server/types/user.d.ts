@@ -17,6 +17,7 @@ export interface UserCredentials {
  * - username - The unique username of the user
  * - password - The user's password
  * - dateJoined - The date when the user registered
+ * - biography - The user's biography information
  */
 export interface User extends UserCredentials {
   _id?: ObjectId;
@@ -29,6 +30,7 @@ export interface User extends UserCredentials {
  * Ensures that the request body contains:
  * - username - The username submitted in the request
  * - password - The password submitted in the request
+ * - biography - The biography submitted in the request (optional field)
  */
 export interface UserRequest extends Request {
   body: {
@@ -86,5 +88,8 @@ export interface UserUpdatePayload {
  * - biography - The new biography content
  */
 export interface UpdateBiographyRequest extends Request {
-  // TODO: Task 1 - Define the request interface for updating a user's biography
+  body: {
+    username: string;
+    biography: string;
+  };
 }

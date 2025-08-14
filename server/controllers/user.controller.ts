@@ -181,6 +181,19 @@ const userController = (socket: FakeSOSocket) => {
   };
 
   /**
+   * Validates that the request body contains all required fields for updating
+   * a user's biography.
+   * @param req The incoming request containing user data.
+   * @returns `true` if the body contains valid user fields; otherwise, `false`.
+   */
+  const isUpdateBiographyRequestValid = (req: UpdateBiographyRequest): boolean =>
+    req.body !== undefined &&
+    req.body.username !== undefined &&
+    req.body.username !== '' &&
+    req.body.biography !== undefined &&
+    req.body.biography !== '';
+
+  /**
    * Updates a user's biography.
    * @param req The request containing the username and biography in the body.
    * @param res The response, either confirming the update or returning an error.
@@ -188,7 +201,16 @@ const userController = (socket: FakeSOSocket) => {
    */
   const updateBiography = async (req: UpdateBiographyRequest, res: Response): Promise<void> => {
     try {
-      // TODO: Task 1 - Implement the updateBiography function, including request validation
+      if (!isUpdateBiographyRequestValid(req)) {
+        res.status(400).send('Invalid biography update body');
+        return;
+      }
+
+      const updatedUser = await updateUser(req.body.username, { biography: req.body.biography });
+
+      if ('error' in updatedUser) {
+        throw new Error(updatedUser.error);
+      }
 
       // Emit socket event for real-time updates
       socket.emit('userUpdate', {
@@ -196,9 +218,9 @@ const userController = (socket: FakeSOSocket) => {
         type: 'updated',
       });
 
-      // TODO: Task 1 - Return the updated user object
+      res.status(200).json(updatedUser);
     } catch (error) {
-      // TODO: Task 1 - Handle errors appropriately
+      res.status(500).send(`Error when updating user biography: ${(error as Error).message}`);
     }
   };
 
@@ -208,8 +230,7 @@ const userController = (socket: FakeSOSocket) => {
   router.patch('/resetPassword', resetPassword);
   router.get('/getUser/:username', getUser);
   router.delete('/deleteUser/:username', deleteUser);
-
-  // TODO: Task 1- Add a route for updating a user's biography
+  router.patch('/updateBiography', updateBiography);
   // TODO: Task 1 - Add a route for getting all users
 
   return router;
