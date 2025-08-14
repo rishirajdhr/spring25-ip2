@@ -90,7 +90,36 @@ describe('getUsersList', () => {
     expect(retrievedUsers[0].dateJoined).toEqual(safeUser.dateJoined);
   });
 
-  // TODO: Task 1 - Add more tests for getUsersList
+  it('should throw an error if there is an error while retrieving from the database', async () => {
+    mockingoose(UserModel).toReturn(new Error('Error retrieving users'), 'find');
+
+    const getUsersListError = await getUsersList();
+
+    expect('error' in getUsersListError).toBe(true);
+  });
+
+  it('should return the users in the order they were created, oldest to newest', async () => {
+    const user1: SafeUser = {
+      username: 'user1',
+      dateJoined: new Date('2025-08-13'),
+      biography: 'Hello, there',
+    };
+    const user2: SafeUser = {
+      username: 'user2',
+      dateJoined: new Date('2025-08-14'),
+      biography: 'I am user2',
+    };
+
+    mockingoose(UserModel).toReturn([user2, user1], 'find');
+
+    const retrievedUsers = (await getUsersList()) as SafeUser[];
+    const expectedUsers = [user1, user2];
+    expectedUsers.forEach((usr, index) => {
+      expect(retrievedUsers[index].username).toBe(usr.username);
+      expect(retrievedUsers[index].dateJoined).toBe(usr.dateJoined);
+      expect(retrievedUsers[index].biography).toBe(usr.biography);
+    });
+  });
 });
 
 describe('loginUser', () => {

@@ -55,9 +55,8 @@ export const getUserByUsername = async (username: string): Promise<UserResponse>
  */
 export const getUsersList = async (): Promise<UsersResponse> => {
   try {
-    const users = await UserModel.find({})
-      .select('-password')
-      .sort({ dateJoined: 'ascending', _id: 'ascending' });
+    const users = await UserModel.find({}).select('-password');
+    users.sort((a, b) => a.dateJoined.getTime() - b.dateJoined.getTime());
     return users;
   } catch (error) {
     return { error: `Error occurred when retrieving all users: ${error}` };
