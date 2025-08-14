@@ -9,7 +9,7 @@ import { Schema } from 'mongoose';
  */
 const chatSchema: Schema = new Schema(
   {
-    participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    participants: [{ type: String }],
     messages: [{ type: Schema.Types.ObjectId, ref: 'Message' }],
   },
   { collection: 'Chat', timestamps: true },

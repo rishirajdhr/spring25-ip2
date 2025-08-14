@@ -15,6 +15,7 @@ import {
   ChatIdRequest,
   GetChatByParticipantsRequest,
   ChatUpdatePayload,
+  ChatResponse,
 } from '../types/chat';
 import { FakeSOSocket } from '../types/socket';
 import { Message } from '../types/message';
@@ -78,7 +79,24 @@ const chatController = (socket: FakeSOSocket) => {
       if ('error' in result) {
         throw new Error(result.error);
       }
-      res.status(200).json(result);
+
+      const populatedChat = (await populateDocument(
+        result._id?.toString(),
+        'chat',
+      )) as ChatResponse;
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+
+      if (populatedChat._id) {
+        const payload: ChatUpdatePayload = {
+          chat: populatedChat,
+          type: 'created',
+        };
+        socket.to(populatedChat._id.toString()).emit('chatUpdate', payload);
+      }
+
+      res.status(200).json(populatedChat);
     } catch (err) {
       res.status(500).send(`Error when creating chat: ${err}`);
     }
@@ -116,10 +134,18 @@ const chatController = (socket: FakeSOSocket) => {
         throw new Error(result.error);
       }
 
-      const payload: ChatUpdatePayload = { chat: result, type: 'newMessage' };
+      const populatedChat = (await populateDocument(
+        result._id?.toString(),
+        'chat',
+      )) as ChatResponse;
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+
+      const payload: ChatUpdatePayload = { chat: populatedChat, type: 'newMessage' };
       socket.to(req.params.chatId).emit('chatUpdate', payload);
 
-      res.status(200).json(result);
+      res.status(200).json(populatedChat);
     } catch (err) {
       res.status(500).send(`Error when adding message to chat: ${err}`);
     }
@@ -158,8 +184,20 @@ const chatController = (socket: FakeSOSocket) => {
     req: GetChatByParticipantsRequest,
     res: Response,
   ): Promise<void> => {
-    const result = await getChatsByParticipants([req.params.username]);
-    res.status(200).json(result);
+    try {
+      const result = await getChatsByParticipants([req.params.username]);
+      const populatedChats = await Promise.all(
+        result.map(c => populateDocument(c._id?.toString(), 'chat') as Promise<ChatResponse>),
+      );
+      for (const chat of populatedChats) {
+        if ('error' in chat) {
+          throw new Error(chat.error);
+        }
+      }
+      res.status(200).json(populatedChats);
+    } catch (err) {
+      res.status(500).send(`Error retrieving chats for user: ${err}`);
+    }
   };
 
   /**
@@ -182,7 +220,13 @@ const chatController = (socket: FakeSOSocket) => {
       if ('error' in result) {
         throw new Error(result.error);
       }
-      res.status(200).json(result);
+
+      const populatedChat = await populateDocument(result._id?.toString(), 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+
+      res.status(200).json(populatedChat);
     } catch (err) {
       res.status(500).send(`Error adding participant to chat: ${err}`);
     }

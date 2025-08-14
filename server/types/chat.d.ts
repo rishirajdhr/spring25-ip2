@@ -14,14 +14,19 @@ export interface MessageInChat extends Message {
 }
 
 /**
- * Represents a Chat with participants and messages (fully enriched).
- * participants is still an array of user ObjectIds.
- * messages is an array of MessageInChat objects.
+ * Represents a Chat with participants and messages (fully enriched). Contains:
+ * - `_id`: The unique identifier of the chat. Optional field.
+ * - `participants`: Array of user ObjectIds.
+ * - `messages`: Array of `MessageInChat` objects.
+ * - `createdAt`: Chat creation datetime. Optional field.
+ * - `updatedAt`: Chat latest update datetime. Optional field.
  */
 export interface Chat {
   _id?: ObjectId;
-  participants: ObjectId[];
+  participants: string[];
   messages: MessageInChat[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**
@@ -44,11 +49,9 @@ export interface CreateChatRequest extends Request {
  * Payload for adding a new message to a chat,
  * containing `msg`, `msgFrom`, and optionally `msgDateTime`.
  */
-export interface AddMessagePayload {
-  msg: Message['msg'];
-  msgFrom: Message['msgFrom'];
-  msgDateTime?: Message['msgDateTime'];
-}
+export interface AddMessagePayload
+  extends Pick<Message, 'msg' | 'msgFrom'>,
+    Pick<Partial<Message>, 'msgDateTime'> {}
 
 /**
  * Custom request type for routes that require a chatId in params.

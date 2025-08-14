@@ -1,9 +1,7 @@
 import ChatModel from '../models/chat.model';
 import MessageModel from '../models/messages.model';
-import UserModel from '../models/users.model';
-import { Chat, ChatResponse, CreateChatPayload, MessageInChat } from '../types/chat';
+import { Chat, ChatResponse, CreateChatPayload } from '../types/chat';
 import { Message, MessageResponse } from '../types/message';
-import { saveMessage } from './message.service';
 
 /**
  * Creates and saves a new chat document in the database, saving messages dynamically.
@@ -13,36 +11,14 @@ import { saveMessage } from './message.service';
  */
 export const saveChat = async (chatPayload: CreateChatPayload): Promise<ChatResponse> => {
   try {
-    // Collect participant IDs
-    const participantResults = await Promise.all(
-      chatPayload.participants.map(username => UserModel.findOne({ username })),
-    );
-    const nonexistentUserIndex = participantResults.findIndex(r => r === null);
-    if (nonexistentUserIndex !== -1) {
-      const username = chatPayload.participants[nonexistentUserIndex];
-      return { error: `No user found with username: ${username}` };
-    }
-    const participants = participantResults.map(r => r!._id);
+    const messages = await MessageModel.insertMany(chatPayload.messages);
+    const chat = {
+      participants: chatPayload.participants,
+      messages: messages.map(m => m._id),
+    };
 
-    // Initialize chat
-    const chat = await ChatModel.create({ participants, messages: [] });
-
-    // Populate messaages
-    let chatResponse: ChatResponse = { error: 'Did not populate messages' };
-    for (const messageData of chatPayload.messages) {
-      const messageResponse = await createMessage(messageData);
-      if ('error' in messageResponse) {
-        return { error: `Error when creating new chat messages: ${messageResponse.error}` };
-      }
-      if (messageResponse._id === undefined) continue;
-      const chatId = chat._id.toString();
-      const messageId = messageResponse._id.toString();
-      chatResponse = await addMessageToChat(chatId, messageId);
-      if ('error' in chat) {
-        return chatResponse;
-      }
-    }
-    return chatResponse;
+    const result = await ChatModel.create(chat);
+    return result;
   } catch (error) {
     return { error: `Error when creating new chat: ${error}` };
   }
@@ -53,8 +29,14 @@ export const saveChat = async (chatPayload: CreateChatPayload): Promise<ChatResp
  * @param messageData - The message data to be created.
  * @returns {Promise<MessageResponse>} - Resolves with the created message or an error message.
  */
-export const createMessage = async (messageData: Message): Promise<MessageResponse> =>
-  saveMessage(messageData);
+export const createMessage = async (messageData: Message): Promise<MessageResponse> => {
+  try {
+    const result = await MessageModel.create(messageData);
+    return result;
+  } catch (error) {
+    return { error: `Error when creating new message: ${error}` };
+  }
+};
 
 /**
  * Adds a message ID to an existing chat.
@@ -67,19 +49,11 @@ export const addMessageToChat = async (
   messageId: string,
 ): Promise<ChatResponse> => {
   try {
-    const message = await MessageModel.findById(messageId).lean();
-    if (message === null) {
-      return { error: `No message found with ID: ${messageId}` };
-    }
-    const user = await UserModel.findOne({ username: message.msgFrom })
-      .select('_id username')
-      .lean();
-    const messageInChat: MessageInChat = { ...message, user };
     const chat = await ChatModel.findByIdAndUpdate(
       chatId,
-      { $push: { messages: messageInChat } },
+      { $push: { messages: messageId } },
       { new: true },
-    ).lean();
+    );
     if (chat === null) {
       return { error: `No chat found with ID: ${chatId}` };
     }
@@ -96,17 +70,10 @@ export const addMessageToChat = async (
  */
 export const getChat = async (chatId: string): Promise<ChatResponse> => {
   try {
-    const chatResult = await ChatModel.findById(chatId).populate({
-      path: 'messages',
-      model: MessageModel,
-    });
-    if (chatResult === null) {
+    const chat = await ChatModel.findById(chatId);
+    if (chat === null) {
       return { error: `No chat found with ID: ${chatId}` };
     }
-    const chat: Chat = {
-      participants: chatResult.participants,
-      messages: chatResult.messages,
-    };
     return chat;
   } catch (error) {
     return { error: `Error when retrieving chat: ${error}` };
@@ -142,7 +109,7 @@ export const addParticipantToChat = async (
   try {
     const result = await ChatModel.findByIdAndUpdate(
       chatId,
-      { $push: { participants: userId } },
+      { $addToSet: { participants: userId } },
       { new: true },
     );
     if (result === null) {
@@ -150,6 +117,6 @@ export const addParticipantToChat = async (
     }
     return result;
   } catch (error) {
-    return { error: `Error when adding participant to chat` };
+    return { error: `Error when adding participant to chat: ${error}` };
   }
 };
