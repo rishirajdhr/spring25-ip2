@@ -24,7 +24,7 @@ const useAllGamesPage = () => {
       const allAvailableGames = await getGames(undefined, undefined);
       setAvailableGames(allAvailableGames);
     } catch (error) {
-      console.error(error);
+      setAvailableGames([]);
     }
   };
 
@@ -33,7 +33,7 @@ const useAllGamesPage = () => {
       await createGame(gameType);
       fetchGames(); // Refresh the list after creating a game
     } catch (error) {
-      console.error(error);
+      // Do nothing
     }
   };
 
