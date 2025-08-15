@@ -98,7 +98,7 @@ const chatController = (socket: FakeSOSocket) => {
 
       res.status(200).json(populatedChat);
     } catch (err) {
-      res.status(500).send(`Error when creating chat: ${err}`);
+      res.status(500).send(`Error when creating chat: ${(err as Error).message}`);
     }
   };
 
@@ -115,6 +115,7 @@ const chatController = (socket: FakeSOSocket) => {
   ): Promise<void> => {
     if (!isAddMessageRequestValid(req)) {
       res.status(400).send('Invalid request body');
+      return;
     }
     try {
       const messageData: Message = {
@@ -126,10 +127,9 @@ const chatController = (socket: FakeSOSocket) => {
       const message = await createMessage(messageData);
       if ('error' in message) {
         throw new Error(message.error);
-      } else if (message._id === undefined) {
-        throw new Error('Message ID is not defined');
       }
-      const result = await addMessageToChat(req.params.chatId, message._id.toString());
+
+      const result = await addMessageToChat(req.params.chatId, message._id!.toString());
       if ('error' in result) {
         throw new Error(result.error);
       }
@@ -147,7 +147,7 @@ const chatController = (socket: FakeSOSocket) => {
 
       res.status(200).json(populatedChat);
     } catch (err) {
-      res.status(500).send(`Error when adding message to chat: ${err}`);
+      res.status(500).send(`Error when adding message to chat: ${(err as Error).message}`);
     }
   };
 
@@ -170,7 +170,7 @@ const chatController = (socket: FakeSOSocket) => {
       }
       res.status(200).json(populatedChat);
     } catch (err) {
-      res.status(500).send(`Error retrieving chat: ${err}`);
+      res.status(500).send(`Error retrieving chat: ${(err as Error).message}`);
     }
   };
 
@@ -191,12 +191,12 @@ const chatController = (socket: FakeSOSocket) => {
       );
       for (const chat of populatedChats) {
         if ('error' in chat) {
-          throw new Error(chat.error);
+          throw new Error('Failed populating chats');
         }
       }
       res.status(200).json(populatedChats);
     } catch (err) {
-      res.status(500).send(`Error retrieving chats for user: ${err}`);
+      res.status(500).send(`Error retrieving chat: ${(err as Error).message}`);
     }
   };
 
@@ -221,14 +221,9 @@ const chatController = (socket: FakeSOSocket) => {
         throw new Error(result.error);
       }
 
-      const populatedChat = await populateDocument(result._id?.toString(), 'chat');
-      if ('error' in populatedChat) {
-        throw new Error(populatedChat.error);
-      }
-
-      res.status(200).json(populatedChat);
+      res.status(200).json(result);
     } catch (err) {
-      res.status(500).send(`Error adding participant to chat: ${err}`);
+      res.status(500).send(`Error adding participant to chat: ${(err as Error).message}`);
     }
   };
 
