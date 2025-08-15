@@ -1,5 +1,6 @@
 import ChatModel from '../models/chat.model';
 import MessageModel from '../models/messages.model';
+import UserModel from '../models/users.model';
 import { Chat, ChatResponse, CreateChatPayload } from '../types/chat';
 import { Message, MessageResponse } from '../types/message';
 
@@ -11,7 +12,7 @@ import { Message, MessageResponse } from '../types/message';
  */
 export const saveChat = async (chatPayload: CreateChatPayload): Promise<ChatResponse> => {
   try {
-    const messages = await MessageModel.insertMany(chatPayload.messages);
+    const messages = await Promise.all(chatPayload.messages.map(m => MessageModel.create(m)));
     const chat = {
       participants: chatPayload.participants,
       messages: messages.map(m => m._id),
@@ -31,6 +32,10 @@ export const saveChat = async (chatPayload: CreateChatPayload): Promise<ChatResp
  */
 export const createMessage = async (messageData: Message): Promise<MessageResponse> => {
   try {
+    const user = await UserModel.findOne({ username: messageData.msgFrom });
+    if (user === null) {
+      return { error: `No user found with username: ${messageData.msgFrom}` };
+    }
     const result = await MessageModel.create(messageData);
     return result;
   } catch (error) {
@@ -49,6 +54,11 @@ export const addMessageToChat = async (
   messageId: string,
 ): Promise<ChatResponse> => {
   try {
+    const message = await MessageModel.findById(messageId);
+    if (message === null) {
+      return { error: `No message found with ID: ${messageId}` };
+    }
+
     const chat = await ChatModel.findByIdAndUpdate(
       chatId,
       { $push: { messages: messageId } },
@@ -57,6 +67,7 @@ export const addMessageToChat = async (
     if (chat === null) {
       return { error: `No chat found with ID: ${chatId}` };
     }
+
     return chat;
   } catch (error) {
     return { error: `Error when adding message to chat: ${error}` };
@@ -88,8 +99,8 @@ export const getChat = async (chatId: string): Promise<ChatResponse> => {
  */
 export const getChatsByParticipants = async (p: string[]): Promise<Chat[]> => {
   try {
-    const chats = await ChatModel.find({ participants: { $all: p } });
-    return chats;
+    const chats = await ChatModel.find({ participants: { $all: p } }).lean();
+    return chats ?? [];
   } catch (error) {
     return [];
   }
@@ -107,6 +118,11 @@ export const addParticipantToChat = async (
   userId: string,
 ): Promise<ChatResponse> => {
   try {
+    const user = await UserModel.findById(userId);
+    if (user === null) {
+      return { error: `No user found with ID: ${userId}` };
+    }
+
     const result = await ChatModel.findByIdAndUpdate(
       chatId,
       { $addToSet: { participants: userId } },
@@ -115,6 +131,7 @@ export const addParticipantToChat = async (
     if (result === null) {
       return { error: `No chat found with ID: ${chatId}` };
     }
+
     return result;
   } catch (error) {
     return { error: `Error when adding participant to chat: ${error}` };
