@@ -33,7 +33,7 @@ const useAllGamesPage = () => {
       await createGame(gameType);
       fetchGames(); // Refresh the list after creating a game
     } catch (error) {
-      // Do nothing
+      throw new Error((error as Error).message);
     }
   };
 
