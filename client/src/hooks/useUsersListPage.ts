@@ -36,9 +36,8 @@ const useUsersListPage = () => {
      * @param user the user to remove
      * @returns a list without the given user
      */
-    const removeUserFromList = (prevUserList: User[], user: User) => {
-      // TODO: Task 1 - Implement the function to remove a user from the list
-    };
+    const removeUserFromList = (prevUserList: User[], user: User) =>
+      prevUserList.filter(prevUser => prevUser.username !== user.username);
 
     /**
      * Adds a user to the userList, if not present. Otherwise updates the user.
@@ -47,8 +46,11 @@ const useUsersListPage = () => {
      * @returns a list with the user added, or updated if present.
      */
     const addUserToList = (prevUserList: User[], user: User) => {
-      // TODO: Task 1 - Implement the function to add or update a user in the list
-      // Add the user to the front of the list if it doesn't already exist
+      const userIndex = prevUserList.findIndex(prevUser => prevUser.username === user.username);
+      if (userIndex === -1) {
+        return [user, ...prevUserList];
+      }
+      return prevUserList.map((prevUser, index) => (index === userIndex ? user : prevUser));
     };
 
     /**
@@ -57,7 +59,17 @@ const useUsersListPage = () => {
      * @param user - the updated user object.
      */
     const handleModifiedUserUpdate = (userUpdate: UserUpdatePayload) => {
-      // TODO: Task 1 - Update the user list based on the user update type.
+      const { type, user } = userUpdate;
+      switch (type) {
+        case 'created':
+          setUserList(prevUserList => addUserToList(prevUserList, user));
+          break;
+        case 'deleted':
+          setUserList(prevUserList => removeUserFromList(prevUserList, user));
+          break;
+        default:
+          break;
+      }
     };
 
     fetchData();
@@ -69,8 +81,12 @@ const useUsersListPage = () => {
     };
   }, [socket]);
 
-  // TODO: Task 1 - Filter the user list based on the userFilter value
-  const filteredUserlist = [];
+  const lowerCaseUserFilter = userFilter.toLowerCase();
+
+  // Perform case-insensitive filtering of users
+  const filteredUserlist = userList.filter(user =>
+    user.username.toLowerCase().includes(lowerCaseUserFilter),
+  );
   return { userList: filteredUserlist, setUserFilter };
 };
 
